@@ -68,7 +68,7 @@ export default function PaperNav({
                 const response = await fetch('http://127.0.0.1:8000/upload', {
                     method: 'POST',
                     body: formData,
-                });
+                } as RequestInit);
 
                 if (!response.ok) {
                     throw new Error('Upload failed');

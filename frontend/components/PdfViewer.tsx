@@ -2,6 +2,7 @@
 import 'react-pdf-highlighter/dist/style.css';
 
 import {PdfLoader, PdfHighlighter} from "react-pdf-highlighter";
+import type {IHighlight, ScaledPosition} from "react-pdf-highlighter";
 
 interface PdfViewerProps {
     pdfUrl: string | null;
@@ -58,13 +59,25 @@ export default function PdfViewer({pdfUrl}: PdfViewerProps) {
                                     pdfDocument={pdfDocument}
                                     enableAreaSelection={(event) => false}
                                     highlights={[]}
-                                    onSelectionFinished={() => {
-                                    }}
-                                    scrollRef={() => {
-                                    }}
-                                    onScrollChange={() => {
-                                    }}
-                                    highlightTransform={(highlight) => null}
+                                    onSelectionFinished={(
+                                        position: ScaledPosition,
+                                        content: { text?: string; image?: string },
+                                        hideTipAndSelection: () => void,
+                                        transformSelection: () => void
+                                    ) => null}
+                                    scrollRef={(scrollTo) => {}}
+                                    onScrollChange={() => {}}
+                                    highlightTransform={(
+                                        highlight,
+                                        index,
+                                        setTip,
+                                        hideTip,
+                                        viewportToScaled,
+                                        screenshot,
+                                        isScrolledTo
+                                    ) => (
+                                        <div key={index} />
+                                    )}
                                 />
                             </div>
                         )}

@@ -26,8 +26,41 @@ import {
     PromptInputTextarea,
     PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
-import {useRef, useState} from "react";
+import React, {useRef, useState} from "react";
 import {CheckIcon} from "lucide-react";
+import type { ChatStatus } from "ai";
+
+// Define types
+type MessagePart =
+    | { type: 'text'; text: string }
+    | { type: 'file'; mediaType: string; url: string; filename: string };
+
+interface Message {
+    id: string;
+    role: 'user' | 'assistant';
+    parts: MessagePart[];
+    metadata?: {
+        createdAt: number;
+        model?: string;
+        totalTokens?: number;
+    };
+}
+
+interface SubmitMessage {
+    text: string;
+    files?: File[];
+}
+
+interface ParsedResponse {
+    answer?: string;
+    chunks?: Array<{
+        source?: string;
+        line_range?: string;
+        preview?: string;
+        text?: string;
+    }>;
+    citations?: string[];
+}
 
 const models = [
     {
@@ -68,16 +101,17 @@ const models = [
 ];
 
 export default function Chatbot() {
-    const [model, setModel] = useState(models[0].id);
-    const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
-    const [messages, setMessages] = useState([]);
-    const [status, setStatus] = useState('idle'); // 'idle', 'submitted', 'streaming', 'error'
-    const [error, setError] = useState(null);
-    const textareaRef = useRef(null);
+    const [model, setModel] = useState<string>(models[0].id);
+    const [modelSelectorOpen, setModelSelectorOpen] = useState<boolean>(false);
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [status, setStatus] = useState<ChatStatus>("ready");
+
+    const [error, setError] = useState<Error | null>(null);
+    const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
     const selectedModelData = models.find((m) => m.id === model);
 
-    const sendMessage = async (message) => {
+    const sendMessage = async (message: SubmitMessage) => {
         const hasText = Boolean(message.text);
         const hasAttachments = Boolean(message.files?.length);
 
@@ -85,8 +119,8 @@ export default function Chatbot() {
             return;
         }
 
-        // Add user message
-        const userMessage = {
+        // Add user message with proper typing
+        const userMessage: Message = {
             id: Date.now().toString(),
             role: 'user',
             parts: [{ type: 'text', text: message.text }],
@@ -95,7 +129,7 @@ export default function Chatbot() {
 
         // Handle file attachments
         if (message.files?.length) {
-            message.files.forEach(file => {
+            message.files.forEach((file: File) => {
                 userMessage.parts.push({
                     type: 'file',
                     mediaType: file.type,
@@ -120,7 +154,7 @@ export default function Chatbot() {
             const data = await response.json();
 
             // Add assistant message
-            const assistantMessage = {
+            const assistantMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
                 parts: [{ type: 'text', text: JSON.stringify(data, null, 2) }],
@@ -131,9 +165,9 @@ export default function Chatbot() {
             };
 
             setMessages(prev => [...prev, assistantMessage]);
-            setStatus('idle');
+            setStatus('ready');
         } catch (err) {
-            setError(err);
+            setError(err as Error);
             setStatus('error');
         }
     };
@@ -151,7 +185,7 @@ export default function Chatbot() {
             const lastUserMessage = [...messages].reverse().find(m => m.role === 'user');
             if (lastUserMessage) {
                 const textPart = lastUserMessage.parts.find(p => p.type === 'text');
-                if (textPart) {
+                if (textPart && textPart.type === 'text') {
                     sendMessage({ text: textPart.text });
                 }
             }
@@ -196,8 +230,7 @@ export default function Chatbot() {
                                     <div className="flex-1">
                                         {message.parts.map((part, index) => {
                                             if (part.type === 'text') {
-                                                // Parse possible JSON-like responses for debugging (optional)
-                                                let parsed = {};
+                                                let parsed = null;
                                                 try {
                                                     parsed = JSON.parse(part.text);
                                                 } catch {
@@ -210,7 +243,7 @@ export default function Chatbot() {
                                                         <p className="text-sm whitespace-pre-wrap">{parsed?.answer || part.text}</p>
 
                                                         {/* Show chunk/citation metadata if present */}
-                                                        {parsed?.chunks && (
+                                                        {parsed?.chunks && Array.isArray(parsed.chunks) && (
                                                             <div className="mt-2 border-l-2 border-muted pl-3 text-xs text-muted-foreground space-y-1">
                                                                 <p className="font-semibold">🔎 Retrieved Chunks:</p>
                                                                 {parsed.chunks.map((chunk, i) => (
@@ -223,7 +256,7 @@ export default function Chatbot() {
                                                             </div>
                                                         )}
 
-                                                        {parsed?.citations && (
+                                                        {parsed?.citations && Array.isArray(parsed.citations) && (
                                                             <div className="mt-2 text-xs text-blue-600">
                                                                 <strong>Citations:</strong> {parsed.citations.join(", ")}
                                                             </div>
@@ -294,8 +327,10 @@ export default function Chatbot() {
                 <PromptInputProvider>
                     <PromptInput onSubmit={handleSubmit}>
                         <PromptInputAttachments>
-                            {(attachment) => <PromptInputAttachment data={attachment} />}
+                            {(attachment) => <PromptInputAttachment data={attachment} /> as React.ReactNode}
                         </PromptInputAttachments>
+
+
                         <PromptInputBody>
                             <PromptInputTextarea ref={textareaRef} />
                         </PromptInputBody>
@@ -308,52 +343,49 @@ export default function Chatbot() {
                                 >
                                     <ModelSelectorTrigger asChild>
                                         <PromptInputButton>
-                                            {selectedModelData?.chefSlug && (
-                                                <ModelSelectorLogo
-                                                    provider={selectedModelData.chefSlug}
-                                                />
-                                            )}
-                                            {selectedModelData?.name && (
-                                                <ModelSelectorName>
-                                                    {selectedModelData.name}
-                                                </ModelSelectorName>
-                                            )}
+                                            <>
+                                                {selectedModelData?.chefSlug && (
+                                                    <ModelSelectorLogo provider={selectedModelData.chefSlug} />
+                                                )}
+                                                {selectedModelData?.name && (
+                                                    <ModelSelectorName>{selectedModelData.name}</ModelSelectorName>
+                                                )}
+                                            </>
                                         </PromptInputButton>
                                     </ModelSelectorTrigger>
+
                                     <ModelSelectorContent>
                                         <ModelSelectorInput placeholder="Search models..." />
                                         <ModelSelectorList>
                                             <ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
-                                            {["OpenAI", "Anthropic", "Google"].map((chef) => (
-                                                <ModelSelectorGroup heading={chef} key={chef}>
-                                                    {models
-                                                        .filter((m) => m.chef === chef)
-                                                        .map((m) => (
-                                                            <ModelSelectorItem
-                                                                key={m.id}
-                                                                onSelect={() => {
-                                                                    setModel(m.id);
-                                                                    setModelSelectorOpen(false);
-                                                                }}
-                                                                value={m.id}
-                                                            >
-                                                                <ModelSelectorLogo provider={m.chefSlug} />
-                                                                <ModelSelectorName>{m.name}</ModelSelectorName>
-                                                                <ModelSelectorLogoGroup>
-                                                                    {m.providers.map((provider) => (
-                                                                        <ModelSelectorLogo
-                                                                            key={provider}
-                                                                            provider={provider}
-                                                                        />
-                                                                    ))}
-                                                                </ModelSelectorLogoGroup>
-                                                                {model === m.id && (
-                                                                    <CheckIcon className="ml-auto size-4" />
-                                                                )}
-                                                            </ModelSelectorItem>
-                                                        ))}
-                                                </ModelSelectorGroup>
-                                            ))}
+
+                                            <div>
+                                                {["OpenAI", "Anthropic", "Google"].map((chef) => (
+                                                    <ModelSelectorGroup heading={chef} key={chef}>
+                                                        {models
+                                                            .filter((m) => m.chef === chef)
+                                                            .map((m) => (
+                                                                <ModelSelectorItem
+                                                                    key={m.id}
+                                                                    onSelect={() => {
+                                                                        setModel(m.id);
+                                                                        setModelSelectorOpen(false);
+                                                                    }}
+                                                                    value={m.id}
+                                                                >
+                                                                    <ModelSelectorLogo provider={m.chefSlug} />
+                                                                    <ModelSelectorName>{m.name}</ModelSelectorName>
+                                                                    <ModelSelectorLogoGroup>
+                                                                        {m.providers.map((provider) => (
+                                                                            <ModelSelectorLogo key={provider} provider={provider} />
+                                                                        ))}
+                                                                    </ModelSelectorLogoGroup>
+                                                                    {model === m.id && <CheckIcon className="ml-auto size-4" />}
+                                                                </ModelSelectorItem>
+                                                            ))}
+                                                    </ModelSelectorGroup>
+                                                ))}
+                                            </div>
                                         </ModelSelectorList>
                                     </ModelSelectorContent>
                                 </ModelSelector>
