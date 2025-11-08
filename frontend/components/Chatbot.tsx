@@ -26,8 +26,6 @@ import {
     PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
 import {useRef, useState} from "react";
-import {useChat} from "@ai-sdk/react";
-import {DefaultChatTransport} from "ai";
 import {CheckIcon} from "lucide-react";
 
 const models = [
@@ -71,20 +69,14 @@ const models = [
 export default function Chatbot() {
     const [model, setModel] = useState(models[0].id);
     const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
+    const [messages, setMessages] = useState([]);
+    const [status, setStatus] = useState('idle'); // 'idle', 'submitted', 'streaming', 'error'
+    const [error, setError] = useState(null);
     const textareaRef = useRef(null);
-
-    const { messages, sendMessage, status, stop, reload, error, setMessages } = useChat({
-        transport: new DefaultChatTransport({
-            api: '/api/chat',
-        }),
-        body: {
-            model: model,
-        },
-    });
 
     const selectedModelData = models.find((m) => m.id === model);
 
-    const handleSubmit = (message) => {
+    const sendMessage = async (message) => {
         const hasText = Boolean(message.text);
         const hasAttachments = Boolean(message.files?.length);
 
@@ -92,14 +84,84 @@ export default function Chatbot() {
             return;
         }
 
-        sendMessage({
-            text: message.text,
-            files: message.files,
-        });
+        // Add user message
+        const userMessage = {
+            id: Date.now().toString(),
+            role: 'user',
+            parts: [{ type: 'text', text: message.text }],
+            metadata: { createdAt: Date.now() }
+        };
+
+        // Handle file attachments
+        if (message.files?.length) {
+            message.files.forEach(file => {
+                userMessage.parts.push({
+                    type: 'file',
+                    mediaType: file.type,
+                    url: URL.createObjectURL(file),
+                    filename: file.name
+                });
+            });
+        }
+
+        setMessages(prev => [...prev, userMessage]);
+        setStatus('submitted');
+        setError(null);
+
+        try {
+            const response = await fetch('https://cortex-mcp-server.vercel.app/mcp/query_collection', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    question: message.text
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to get response');
+            }
+
+            const data = await response.json();
+
+            // Add assistant message
+            const assistantMessage = {
+                id: (Date.now() + 1).toString(),
+                role: 'assistant',
+                parts: [{ type: 'text', text: data.answer || data.response || JSON.stringify(data) }],
+                metadata: {
+                    createdAt: Date.now(),
+                    model: model
+                }
+            };
+
+            setMessages(prev => [...prev, assistantMessage]);
+            setStatus('idle');
+        } catch (err) {
+            setError(err);
+            setStatus('error');
+        }
+    };
+
+    const handleSubmit = (message) => {
+        sendMessage(message);
     };
 
     const handleDelete = (id) => {
         setMessages(messages.filter(message => message.id !== id));
+    };
+
+    const reload = () => {
+        if (messages.length > 0) {
+            const lastUserMessage = [...messages].reverse().find(m => m.role === 'user');
+            if (lastUserMessage) {
+                const textPart = lastUserMessage.parts.find(p => p.type === 'text');
+                if (textPart) {
+                    sendMessage({ text: textPart.text });
+                }
+            }
+        }
     };
 
     return (
@@ -179,12 +241,6 @@ export default function Chatbot() {
                                     <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
                                     <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                                 </div>
-                                <button
-                                    onClick={stop}
-                                    className="text-xs px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-                                >
-                                    Stop
-                                </button>
                             </div>
                         </div>
                     </div>
