@@ -2,6 +2,7 @@
 
 import {useState} from "react";
 import {SidebarLeftIcon} from "@/components/ui/icons/akar-icons-sidebar-left";
+import {PaperIcon} from "@/components/ui/icons/akar-icons-paper";
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
 
@@ -18,9 +19,9 @@ interface PdfItem {
 }
 
 const initialPdfs: PdfItem[] = [
-    { name: 'Research Paper 1', url: '/pdfs/paper1.pdf' },
-    { name: 'Research Paper 2', url: '/pdfs/paper2.pdf' },
-    { name: 'Research Paper 3', url: '/pdfs/paper3.pdf' },
+    {name: 'Research Paper 1', url: '/pdfs/paper1.pdf'},
+    {name: 'Research Paper 2', url: '/pdfs/paper2.pdf'},
+    {name: 'Research Paper 3', url: '/pdfs/paper3.pdf'},
 ];
 
 export default function PaperNav({
@@ -77,7 +78,7 @@ export default function PaperNav({
                     className="focus:outline-none hover:opacity-80 transition-opacity flex-shrink-0"
                     title={isOpen ? 'Collapse' : 'Expand'}
                 >
-                    <SidebarLeftIcon />
+                    <SidebarLeftIcon/>
                 </button>
             </div>
             {/* List */}
@@ -89,12 +90,14 @@ export default function PaperNav({
                             onClick={() => handlePdfClick(pdf, index)}
                             className={`px-3 py-2 cursor-pointer list-none transition-colors ${
                                 selectedIndex === index
-                                    ? 'bg-blue-100 border-l-4 border-blue-500'
-                                    : 'bg-gray-100 hover:bg-gray-200'
+                                    ? 'bg-[#edd5d7] border-l-4 border-[#8f0913]'
+                                    : 'bg-[#F9F6EE] hover:bg-gray-200'
                             }`}
                         >
                             <div className="flex items-center gap-2">
-                                <span className="text-red-500">📄</span>
+                                <span className="text-black">
+                                    <PaperIcon size={19}/>
+                                </span>
                                 <span className="text-sm truncate">{pdf.name}</span>
                             </div>
                         </li>
