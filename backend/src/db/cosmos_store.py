@@ -7,11 +7,9 @@ COSMOS_URL = os.getenv("COSMOS_URL")
 COSMOS_KEY = os.getenv("COSMOS_KEY")
 DATABASE_ID = "CortexDB"
 
-# ✅ Connect to Cosmos
 client = CosmosClient(COSMOS_URL, credential=COSMOS_KEY)
 db = client.get_database_client(DATABASE_ID)
 
-# ✅ Containers
 users = db.get_container_client("users")
 docs = db.get_container_client("docs")
 chats = db.get_container_client("chats")
