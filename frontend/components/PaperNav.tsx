@@ -33,15 +33,18 @@ export default function PaperNav({
     const [isOpen, setIsOpen] = useState(true);
     const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
     const [pdfList, setPdfList] = useState<PdfItem[]>(initialPdfs);
+    const [isUploading, setIsUploading] = useState(false);
 
     const handlePdfClick = (pdf: PdfItem, index: number) => {
         setSelectedIndex(index);
         onSelectPdf(pdf.url);
     };
 
-    const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file && file.type === 'application/pdf') {
+            setIsUploading(true);
+
             // Create a URL for the uploaded file
             const fileUrl = URL.createObjectURL(file);
 
@@ -53,9 +56,32 @@ export default function PaperNav({
 
             setPdfList([...pdfList, newPdf]);
 
-            // Optionally, auto-select the newly uploaded PDF
+            // Auto-select the newly uploaded PDF
             setSelectedIndex(pdfList.length);
             onSelectPdf(fileUrl);
+
+            // Upload to backend
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await fetch('http://127.0.0.1:8000/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    throw new Error('Upload failed');
+                }
+
+                const result = await response.json();
+                console.log('Upload successful:', result);
+            } catch (error) {
+                console.error('Error uploading file:', error);
+                alert('Failed to upload file to backend');
+            } finally {
+                setIsUploading(false);
+            }
 
             // Reset the input
             event.target.value = '';
@@ -91,7 +117,7 @@ export default function PaperNav({
                             className={`px-3 py-2 cursor-pointer list-none transition-colors ${
                                 selectedIndex === index
                                     ? 'bg-[#edd5d7] border-l-4 border-[#8f0913]'
-                                    : 'bg-[#F9F6EE] hover:bg-gray-200'
+                                    : 'bg-[#F9F6EE] hover:bg-stone-300'
                             }`}
                         >
                             <div className="flex items-center gap-2">
@@ -111,8 +137,12 @@ export default function PaperNav({
                         type="file"
                         accept=".pdf"
                         onChange={handleFileUpload}
-                        className="cursor-pointer bg-[#FCFAF6]"
+                        disabled={isUploading}
+                        className="cursor-pointer bg-[#FCFAF6] disabled:opacity-50 disabled:cursor-not-allowed"
                     />
+                    {isUploading && (
+                        <p className="text-xs text-gray-500 mt-1">Uploading...</p>
+                    )}
                 </div>
             )}
         </aside>
