@@ -109,15 +109,8 @@ export default function Chatbot() {
         setError(null);
 
         try {
-            const response = await fetch('https://cortex-mcp-server.vercel.app/mcp/query_collection', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    question: message.text
-                }),
-            });
+            const encodedQuestion = encodeURIComponent(message.text);
+            const response = await fetch(`http://127.0.0.1:8000/query?question=${encodedQuestion}`);
 
             if (!response.ok) {
                 throw new Error('Failed to get response');
