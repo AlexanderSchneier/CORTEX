@@ -1,8 +1,11 @@
 import uuid
+import logging
 from datetime import datetime
 from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from ..db import local_store  # your TinyDB helper
+
+logger = logging.getLogger(__name__)
 
 # Accepts a PDF file from the user
 # Saves it to your local uploads/ folder
@@ -35,23 +38,29 @@ async def upload_paper(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"File save failed: {e}")
 
+    # 4. Upload to MCP server
     from ..services.mcp_client import upload_to_mcp
-    mcp_id = upload_to_mcp(str(stored_path), paper_id)
-    record["mcp_document_id"] = mcp_id
+    mcp_id = None
+    try:
+        mcp_id = upload_to_mcp(str(stored_path), paper_id)
+    except Exception as e:
+        # Log error but continue - file is saved locally even if MCP upload fails
+        logger.error(f"MCP upload failed: {e}")
 
-
-    # 4. Create metadata record
+    # 5. Create metadata record
     record = {
         "id": paper_id,
         "filename": file.filename,
         "stored_path": str(stored_path),
         "uploaded_at": datetime.utcnow().isoformat(),
     }
+    if mcp_id:
+        record["mcp_document_id"] = mcp_id
 
-    # 5. Add record to TinyDB
+    # 6. Add record to TinyDB
     local_store.add_paper(record)
 
-    # 6. Return confirmation
+    # 7. Return confirmation
     return {
         "paper_id": paper_id,
         "filename": file.filename,
