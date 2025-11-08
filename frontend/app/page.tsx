@@ -7,7 +7,7 @@ import PaperNav from "@/components/PaperNav";
 import NavBar from "@/components/NavBar";
 
 export default function Home() {
-    const [selectedPdf, setSelectedPdf] = useState(null);
+    const [selectedPdf, setSelectedPdf] = useState<string | null>(null);
 
     return (
         <div className="flex flex-col h-screen">
@@ -32,6 +32,7 @@ export default function Home() {
                         title="Paper Directory"
                         textColor="text-black"
                         onSelectPdf={setSelectedPdf}
+                        selectedPdf={selectedPdf}
                     />
                 </div>
             </div>

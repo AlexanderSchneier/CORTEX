@@ -1,14 +1,13 @@
 'use client';
 import 'react-pdf-highlighter/dist/style.css';
 
-
-import { PdfLoader, PdfHighlighter } from "react-pdf-highlighter";
+import {PdfLoader, PdfHighlighter} from "react-pdf-highlighter";
 
 interface PdfViewerProps {
     pdfUrl: string | null;
 }
 
-export default function PdfViewer({ pdfUrl }: PdfViewerProps) {
+export default function PdfViewer({pdfUrl}: PdfViewerProps) {
     if (!pdfUrl) {
         return (
             <div className="flex-1 flex items-center justify-center bg-gray-50 border-x border-gray-200">
@@ -35,7 +34,6 @@ export default function PdfViewer({ pdfUrl }: PdfViewerProps) {
 
     return (
         <div className="flex-1 flex flex-col p-4">
-            {/* Header */}
             <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between rounded-md">
                 <h3 className="text-sm font-semibold text-gray-700">PDF Viewer</h3>
                 <a
@@ -48,17 +46,25 @@ export default function PdfViewer({ pdfUrl }: PdfViewerProps) {
                 </a>
             </div>
 
-            {/* PDF Container */}
             <div className="flex-1 relative">
                 <div className="absolute inset-0">
-                    <PdfLoader url={pdfUrl}>
+                    <PdfLoader
+                        url={pdfUrl}
+                        beforeLoad={<div className="text-center text-gray-400 mt-10">Loading PDF...</div>}
+                    >
                         {(pdfDocument) => (
                             <div className="absolute inset-0">
                                 <PdfHighlighter
                                     pdfDocument={pdfDocument}
-                                    enableAreaSelection={false}
+                                    enableAreaSelection={(event) => false}
                                     highlights={[]}
-                                    onSelectionFinished={() => {}}
+                                    onSelectionFinished={() => {
+                                    }}
+                                    scrollRef={() => {
+                                    }}
+                                    onScrollChange={() => {
+                                    }}
+                                    highlightTransform={(highlight) => null}
                                 />
                             </div>
                         )}
