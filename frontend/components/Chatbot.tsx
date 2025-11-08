@@ -25,7 +25,7 @@ import {
     PromptInputTextarea,
     PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
-import {useEffect, useRef, useState} from "react";
+import {useRef, useState} from "react";
 import {CheckIcon} from "lucide-react";
 
 const models = [
@@ -73,16 +73,8 @@ export default function Chatbot() {
     const [status, setStatus] = useState('idle'); // 'idle', 'submitted', 'streaming', 'error'
     const [error, setError] = useState(null);
     const textareaRef = useRef(null);
-    const messagesEndRef = useRef(null);
-    const messagesContainerRef = useRef(null);
 
     const selectedModelData = models.find((m) => m.id === model);
-
-    useEffect(() => {
-        if (messagesContainerRef.current) {
-            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-        }
-    }, [messages, status]);
 
     const sendMessage = async (message) => {
         const hasText = Boolean(message.text);
@@ -130,7 +122,7 @@ export default function Chatbot() {
             const assistantMessage = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                parts: [{ type: 'text', text: data.answer || data.response || JSON.stringify(data) }],
+                parts: [{ type: 'text', text: JSON.stringify(data, null, 2) }],
                 metadata: {
                     createdAt: Date.now(),
                     model: model
@@ -176,7 +168,7 @@ export default function Chatbot() {
             </div>
 
             {/* Messages Container */}
-            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {messages.length === 0 ? (
                     <div className="flex items-center justify-center h-full text-muted-foreground">
                         <div className="text-center space-y-2">
@@ -203,8 +195,42 @@ export default function Chatbot() {
                                     <div className="flex-1">
                                         {message.parts.map((part, index) => {
                                             if (part.type === 'text') {
-                                                return <p key={index} className="text-sm whitespace-pre-wrap">{part.text}</p>;
+                                                // Parse possible JSON-like responses for debugging (optional)
+                                                let parsed = {};
+                                                try {
+                                                    parsed = JSON.parse(part.text);
+                                                } catch {
+                                                    parsed = null;
+                                                }
+
+                                                // Render normal text and optional citations/chunks below
+                                                return (
+                                                    <div key={index}>
+                                                        <p className="text-sm whitespace-pre-wrap">{parsed?.answer || part.text}</p>
+
+                                                        {/* Show chunk/citation metadata if present */}
+                                                        {parsed?.chunks && (
+                                                            <div className="mt-2 border-l-2 border-muted pl-3 text-xs text-muted-foreground space-y-1">
+                                                                <p className="font-semibold">🔎 Retrieved Chunks:</p>
+                                                                {parsed.chunks.map((chunk, i) => (
+                                                                    <div key={i} className="bg-muted/30 rounded p-2">
+                                                                        <p><strong>Source:</strong> {chunk.source || 'unknown.pdf'}</p>
+                                                                        <p><strong>Lines:</strong> {chunk.line_range || 'N/A'}</p>
+                                                                        <p className="italic">{chunk.preview || chunk.text?.slice(0, 120)}...</p>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+
+                                                        {parsed?.citations && (
+                                                            <div className="mt-2 text-xs text-blue-600">
+                                                                <strong>Citations:</strong> {parsed.citations.join(", ")}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
                                             }
+
                                             if (part.type === 'file' && part.mediaType?.startsWith('image/')) {
                                                 return <img key={index} src={part.url} alt={part.filename} className="max-w-full rounded mt-2" />;
                                             }
@@ -260,7 +286,6 @@ export default function Chatbot() {
                         </div>
                     </div>
                 )}
-                <div ref={messagesEndRef} />
             </div>
 
             {/* Prompt Input Component */}
