@@ -35,6 +35,11 @@ async def upload_paper(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"File save failed: {e}")
 
+    from ..services.mcp_client import upload_to_mcp
+    mcp_id = upload_to_mcp(str(stored_path), paper_id)
+    record["mcp_document_id"] = mcp_id
+
+
     # 4. Create metadata record
     record = {
         "id": paper_id,
