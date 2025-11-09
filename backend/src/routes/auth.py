@@ -1,11 +1,13 @@
-import os, jwt, uuid
-from fastapi import APIRouter, HTTPException, Depends
+import os
+import jwt
+import uuid
+from datetime import datetime, timedelta
+from fastapi import APIRouter, HTTPException, Depends, Form
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
-from datetime import datetime, timedelta
 from azure.cosmos import CosmosClient
 
-# 🔐 Config
+# --- Config ---
 SECRET_KEY = os.getenv("JWT_SECRET", "dev-secret")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 1 day
@@ -15,12 +17,12 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-# ☁️ Cosmos connection
+# --- Cosmos connection ---
 client = CosmosClient(os.getenv("COSMOS_URL"), credential=os.getenv("COSMOS_KEY"))
 database = client.get_database_client(os.getenv("COSMOS_DB"))
 users_container = database.get_container_client("users")
 
-# --- Helpers ---
+# --- Helper: JWT creation ---
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
@@ -29,8 +31,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
 
 # --- Routes ---
 @router.post("/signup")
-async def signup(email: str, password: str):
-    # check if user exists
+async def signup(email: str = Form(...), password: str = Form(...)):
     query = f"SELECT * FROM c WHERE c.email = '{email}'"
     users = list(users_container.query_items(query, enable_cross_partition_query=True))
     if users:
@@ -41,15 +42,16 @@ async def signup(email: str, password: str):
         "id": str(uuid.uuid4()),
         "email": email,
         "hashed_password": hashed_pw,
-        "created_at": datetime.utcnow().isoformat()
+        "created_at": datetime.utcnow().isoformat(),
     }
     users_container.create_item(user_doc)
 
     token = create_access_token({"sub": email})
     return {"access_token": token, "token_type": "bearer"}
 
+
 @router.post("/login")
-async def login(email: str, password: str):
+async def login(email: str = Form(...), password: str = Form(...)):
     query = f"SELECT * FROM c WHERE c.email = '{email}'"
     users = list(users_container.query_items(query, enable_cross_partition_query=True))
     if not users or not pwd_context.verify(password, users[0]["hashed_password"]):
@@ -57,6 +59,7 @@ async def login(email: str, password: str):
 
     token = create_access_token({"sub": email})
     return {"access_token": token, "token_type": "bearer"}
+
 
 # --- Dependency for protected routes ---
 def get_current_user(token: str = Depends(oauth2_scheme)):
