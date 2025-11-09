@@ -48,6 +48,8 @@ async def signup(user: UserIn):
         raise HTTPException(status_code=400, detail="Email already registered")
     if not isinstance(password, str):
         raise HTTPException(status_code=400, detail="Invalid password format")
+    password = password[:72]  # bcrypt limit safeguard
+    hashed_pw = pwd_context.hash(password)
 
     if len(password.encode("utf-8")) > 72:
         raise HTTPException(status_code=400, detail="Password too long (max 72 bytes)")
@@ -71,6 +73,9 @@ async def signup(user: UserIn):
 async def login(user: UserIn):
     email = user.email
     password = user.password
+    if len(password.encode()) > 72:
+        password = password[:72]
+
 
     query = f"SELECT * FROM c WHERE c.email = '{email}'"
     users = list(users_container.query_items(query, enable_cross_partition_query=True))
