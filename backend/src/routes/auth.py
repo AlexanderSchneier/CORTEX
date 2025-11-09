@@ -16,7 +16,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 # ☁️ Cosmos connection
-client = CosmosClient(os.getenv("COSMOS_URI"), credential=os.getenv("COSMOS_KEY"))
+client = CosmosClient(os.getenv("COSMOS_URL"), credential=os.getenv("COSMOS_KEY"))
 database = client.get_database_client(os.getenv("COSMOS_DB"))
 users_container = database.get_container_client("users")
 
