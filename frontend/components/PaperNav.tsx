@@ -21,29 +21,6 @@ interface PaperNavProps {
     selectedPaperId?: string | null;
 }
 
-'use client';
-
-import { useEffect, useState } from "react";
-import { SidebarLeftIcon } from "@/components/ui/icons/akar-icons-sidebar-left";
-import { PaperIcon } from "@/components/ui/icons/akar-icons-paper";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-
-interface PdfItem {
-    name: string;
-    url: string;
-    paperId?: string;
-}
-
-interface PaperNavProps {
-    onSelectPdf: (pdfUrl: string) => void;
-    selectedPdf: string | null;
-    onPdfListChange?: (pdfList: PdfItem[]) => void;
-    title?: string;
-    textColor?: string;
-    selectedPaperId?: string | null;
-}
-
 export default function PaperNav({
                                      onSelectPdf,
                                      selectedPdf,
