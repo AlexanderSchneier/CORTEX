@@ -62,11 +62,19 @@ interface ParsedResponse {
         text?: string;
     }>;
     citations?: Array<{
-        chunk_id?: string;
-        page?: number | string;
-        source?: string;
+        chunk_id: string;
+        text?: string;
+        citation?: {
+            document_id?: string;
+            filename?: string;
+            page?: number;
+            location?: string;
+            chunk_id?: string;
+        };
+        relevance_score?: number;
     }>;
 }
+
 
 
 const models = [
@@ -267,6 +275,7 @@ export default function Chatbot() {
                                                     ? parsed.citations[0]
                                                     : null;
 
+
                                                 return (
                                                     <div key={index}>
                                                         <p className="text-sm whitespace-pre-wrap">
@@ -276,11 +285,7 @@ export default function Chatbot() {
                                                         {/* Show only the most relevant page and chunk */}
                                                         {mostRelevantCitation && (
                                                             <div className="mt-2 text-xs text-muted-foreground">
-                                                                <strong>Context:</strong>{" "}
-                                                                Page {mostRelevantCitation.page || "N/A"}, Chunk{" "}
-                                                                {mostRelevantCitation.chunk_id
-                                                                    ? mostRelevantCitation.chunk_id.split("_c")[1] || "N/A"
-                                                                    : "N/A"}
+                                                                <strong>Context:</strong> Page {mostRelevantCitation.citation?.page || 'N/A'}, Chunk {mostRelevantCitation.citation?.chunk_id?.split('_c')[1] || 'N/A'}
                                                             </div>
                                                         )}
 
