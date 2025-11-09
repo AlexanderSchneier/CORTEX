@@ -65,7 +65,7 @@ export default function PaperNav({
                 const formData = new FormData();
                 formData.append('file', file);
 
-                const response = await fetch('cortex-production-8481.up.railway.app/upload', {
+                const response = await fetch('https://cortex-production-8481.up.railway.app/upload', {
                     method: 'POST',
                     body: formData,
                 } as RequestInit);
