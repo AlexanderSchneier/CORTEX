@@ -22,6 +22,7 @@ import json
 import logging
 import time
 from typing import Dict, List, Optional, Any
+from sklearn.metrics.pairwise import cosine_similarity
 
 from dotenv import load_dotenv
 import google.generativeai as genai
@@ -37,6 +38,7 @@ CORTEX_MCP_URL = os.getenv("CORTEX_MCP_URL", "http://localhost:9000/mcp")
 CORTEX_MCP_API_KEY = os.getenv("CORTEX_MCP_API_KEY")  # Optional
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-exp")
+EMBEDDING_MODEL = "models/gemini-embedding-001"
 
 # Logger - let the application configure logging at the top level
 logger = logging.getLogger(__name__)
@@ -380,7 +382,44 @@ def handle_question(
     
     answer = query_response.get("answer", "")
     citations_data = query_response.get("citations", [])
-    
+
+    # --- Step: semantic re-ranking of citations by similarity to answer ---
+    if citations_data:
+        try:
+            # Embed the answer
+            answer_embedding = genai.embed_content(
+                model=EMBEDDING_MODEL,
+                content=answer
+            )["embedding"]
+
+            # Compute similarity for each chunk text
+            for cit in citations_data:
+                text = cit.get("text") or cit.get("snippet") or ""
+                if not text.strip():
+                    cit["similarity"] = 0.0
+                    continue
+                chunk_emb = genai.embed_content(
+                    model=EMBEDDING_MODEL,
+                    content=text
+                )["embedding"]
+                cit["similarity"] = cosine_similarity(
+                    [answer_embedding], [chunk_emb]
+                )[0][0]
+
+            # Sort by similarity (descending)
+            citations_data.sort(key=lambda c: c["similarity"], reverse=True)
+
+            # Boost top match
+            if citations_data:
+                top = citations_data[0]
+                top["score"] = top.get("score", 0) + 1.0  # gentle boost
+                logger.info(
+                    f"Top semantic match: chunk {top.get('chunk_id')} "
+                    f"(similarity={top.get('similarity'):.3f})"
+                )
+
+        except Exception as e:
+            logger.warning(f"Semantic ranking skipped: {e}")
     # Step 2: Extract chunk IDs from answer or citations array
     chunk_ids = []
     citation_tag_ids = extract_citation_ids(answer)

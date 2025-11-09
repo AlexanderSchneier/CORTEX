@@ -1,10 +1,33 @@
 'use client';
 
-import {useEffect, useState} from "react";
-import {SidebarLeftIcon} from "@/components/ui/icons/akar-icons-sidebar-left";
-import {PaperIcon} from "@/components/ui/icons/akar-icons-paper";
-import {Input} from "@/components/ui/input";
-import {Label} from "@/components/ui/label";
+import { useEffect, useState } from "react";
+import { SidebarLeftIcon } from "@/components/ui/icons/akar-icons-sidebar-left";
+import { PaperIcon } from "@/components/ui/icons/akar-icons-paper";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+interface PdfItem {
+    name: string;
+    url: string;
+    paperId?: string;
+}
+
+interface PaperNavProps {
+    onSelectPdf: (pdfUrl: string) => void;
+    selectedPdf: string | null;
+    onPdfListChange?: (pdfList: PdfItem[]) => void;
+    title?: string;
+    textColor?: string;
+    selectedPaperId?: string | null;
+}
+
+'use client';
+
+import { useEffect, useState } from "react";
+import { SidebarLeftIcon } from "@/components/ui/icons/akar-icons-sidebar-left";
+import { PaperIcon } from "@/components/ui/icons/akar-icons-paper";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface PdfItem {
     name: string;
@@ -25,7 +48,7 @@ export default function PaperNav({
                                      onSelectPdf,
                                      selectedPdf,
                                      onPdfListChange,
-                                     selectedPaperId,   // ← ADD THIS
+                                     selectedPaperId,
                                      title = 'PAPER DIRECTORY',
                                      textColor = 'text-white'
                                  }: PaperNavProps) {
@@ -34,9 +57,36 @@ export default function PaperNav({
     const [pdfList, setPdfList] = useState<PdfItem[]>([]);
     const [isUploading, setIsUploading] = useState(false);
 
+    // 🔹 Load user's papers when component mounts
     useEffect(() => {
-        onPdfListChange?.(pdfList);
-    }, [pdfList, onPdfListChange]);
+        const fetchPapers = async () => {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            try {
+                const res = await fetch('https://cortex-production-8481.up.railway.app/papers', {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (!res.ok) {
+                    console.error('Failed to load papers');
+                    return;
+                }
+
+                const data = await res.json();
+                const formatted = data.map((p: any) => ({
+                    name: p.filename,
+                    url: '',              // no preview yet, only metadata
+                    paperId: p.id,
+                }));
+                setPdfList(formatted);
+            } catch (err) {
+                console.error('Error loading papers:', err);
+            }
+        };
+
+        fetchPapers();
+    }, []);
+
 
     const handlePdfClick = (pdf: PdfItem, index: number) => {
         setSelectedIndex(index);
@@ -48,44 +98,47 @@ export default function PaperNav({
         if (file && file.type === 'application/pdf') {
             setIsUploading(true);
 
-            // Create a URL for the uploaded file
+            // create preview URL
             const fileUrl = URL.createObjectURL(file);
-
-            // Add the new PDF to the list
-            const newPdf: PdfItem = {
-                name: file.name,
-                url: fileUrl
-            };
-
+            const newPdf: PdfItem = { name: file.name, url: fileUrl };
             setPdfList([...pdfList, newPdf]);
-
-            // Auto-select the newly uploaded PDF
             setSelectedIndex(pdfList.length);
             onSelectPdf(fileUrl);
 
-            // Upload to backend
             try {
                 const formData = new FormData();
                 formData.append('file', file);
 
-                const response = await fetch('https://cortex-production-8481.up.railway.app/upload', {
-                    method: 'POST',
-                    body: formData,
-                } as RequestInit);
+                // ⬇️ get token from localStorage
+                const token = localStorage.getItem('token');
+
+                const response = await fetch(
+                    'https://cortex-production-8481.up.railway.app/upload',
+                    {
+                        method: 'POST',
+                        headers: token
+                            ? { Authorization: `Bearer ${token}` }
+                            : undefined,
+                        body: formData,
+                    } as RequestInit
+                );
 
                 if (!response.ok) {
-                    throw new Error('Upload failed');
+                    const msg = await response.text();
+                    console.error('Upload failed:', msg);
+                    alert('Failed to upload file to backend');
+                    return;
                 }
 
                 const result = await response.json();
                 console.log('Upload successful:', result);
 
-                // Update the PDF item with the paper ID from backend
+                // Update PDF list with paper ID from backend
                 setPdfList(prev => {
                     const updated = [...prev];
                     updated[updated.length - 1] = {
                         ...updated[updated.length - 1],
-                        paperId: result.paper_id
+                        paperId: result.paper_id,
                     };
                     return updated;
                 });
@@ -96,8 +149,7 @@ export default function PaperNav({
                 setIsUploading(false);
             }
 
-            // Reset the input
-            event.target.value = '';
+            event.target.value = ''; // reset file input
         } else {
             alert('Please upload a valid PDF file');
         }
@@ -110,16 +162,19 @@ export default function PaperNav({
             }`}
         >
             {/* Header */}
-            <div className={`flex items-center justify-between bg-maroon h-12 px-3 font-bold text-lg flex-shrink-0 ${textColor}`}>
+            <div
+                className={`flex items-center justify-between bg-maroon h-12 px-3 font-bold text-lg flex-shrink-0 ${textColor}`}
+            >
                 {isOpen && <span className="whitespace-nowrap overflow-hidden">{title}</span>}
                 <button
                     onClick={() => setIsOpen(!isOpen)}
                     className="focus:outline-none hover:opacity-80 transition-opacity flex-shrink-0"
                     title={isOpen ? 'Collapse' : 'Expand'}
                 >
-                    <SidebarLeftIcon/>
+                    <SidebarLeftIcon />
                 </button>
             </div>
+
             {/* List */}
             {isOpen && (
                 <ul>
@@ -129,18 +184,17 @@ export default function PaperNav({
                             onClick={() => handlePdfClick(pdf, index)}
                             className={`px-3 py-2 cursor-pointer list-none transition-colors ${
                                 selectedPaperId
-                                    ? (pdf.paperId === selectedPaperId
+                                    ? pdf.paperId === selectedPaperId
                                         ? 'bg-[#edd5d7] border-l-4 border-[#8f0913]'
-                                        : 'bg-[#F9F6EE] hover:bg-stone-300')
-                                    : (selectedIndex === index
+                                        : 'bg-[#F9F6EE] hover:bg-stone-300'
+                                    : selectedIndex === index
                                         ? 'bg-[#edd5d7] border-l-4 border-[#8f0913]'
-                                        : 'bg-[#F9F6EE] hover:bg-stone-300')
+                                        : 'bg-[#F9F6EE] hover:bg-stone-300'
                             }`}
                         >
-
-                        <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2">
                                 <span className="text-black">
-                                    <PaperIcon size={19}/>
+                                    <PaperIcon size={19} />
                                 </span>
                                 <span className="text-sm truncate">{pdf.name}</span>
                             </div>
@@ -148,6 +202,8 @@ export default function PaperNav({
                     ))}
                 </ul>
             )}
+
+            {/* Upload input */}
             {isOpen && (
                 <div className="p-3 border-gray-200 flex-shrink-0">
                     <Input
@@ -158,9 +214,7 @@ export default function PaperNav({
                         disabled={isUploading}
                         className="cursor-pointer bg-[#FCFAF6] disabled:opacity-50 disabled:cursor-not-allowed"
                     />
-                    {isUploading && (
-                        <p className="text-xs text-gray-500 mt-1">Uploading...</p>
-                    )}
+                    {isUploading && <p className="text-xs text-gray-500 mt-1">Uploading...</p>}
                 </div>
             )}
         </aside>
