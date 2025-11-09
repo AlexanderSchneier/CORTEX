@@ -257,31 +257,21 @@ export default function Chatbot() {
                                                     parsed = null;
                                                 }
 
-                                                // Render normal text and optional citations/chunks below
+                                                // Get the most relevant citation (first one, as they're sorted by relevance)
+                                                const mostRelevantCitation = Array.isArray(parsed?.citations) && parsed.citations.length > 0
+                                                    ? parsed.citations[0]
+                                                    : null;
+
                                                 return (
                                                     <div key={index}>
                                                         <p className="text-sm whitespace-pre-wrap">
                                                             {parsed?.answer ?? part.text}
                                                         </p>
 
-                                                        {/* Show chunk/citation metadata if present */}
-                                                        {Array.isArray(parsed?.chunks) && parsed.chunks.length > 0 && (
-                                                            <div className="mt-2 border-l-2 border-muted pl-3 text-xs text-muted-foreground space-y-1">
-                                                                <p className="font-semibold">📄 Source:</p>
-                                                                <div className="bg-muted/30 rounded p-2">
-                                                                    <p><strong>File:</strong> {parsed.chunks[0].source || 'unknown.pdf'}</p>
-                                                                    <p><strong>Page:</strong> {parsed.chunks[0].line_range || 'N/A'}</p>
-                                                                    <p className="italic">
-                                                                        {parsed.chunks[0].preview ?? parsed.chunks[0].text?.slice(0, 120)}...
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                        )}
-
-
-                                                        {Array.isArray(parsed?.citations) && (
-                                                            <div className="mt-2 text-xs text-blue-600">
-                                                                <strong>Citations:</strong> {parsed.citations.join(", ")}
+                                                        {/* Show only the most relevant page and chunk */}
+                                                        {mostRelevantCitation && (
+                                                            <div className="mt-2 text-xs text-muted-foreground">
+                                                                <strong>Context:</strong> Page {mostRelevantCitation.citation?.page || 'N/A'}, Chunk {mostRelevantCitation.citation?.chunk_id?.split('_c')[1] || 'N/A'}
                                                             </div>
                                                         )}
                                                     </div>
