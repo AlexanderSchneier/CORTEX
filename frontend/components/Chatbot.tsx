@@ -47,6 +47,10 @@ interface Message {
     };
 }
 
+interface ChatbotProps {
+    onCitationClick?: (filename: string, page: number) => void;
+}
+
 interface SubmitMessage {
     text: string;
     files?: File[];
@@ -115,7 +119,7 @@ const models = [
     },
 ];
 
-export default function Chatbot() {
+export default function Chatbot({ onCitationClick }: ChatbotProps) {
     const [model, setModel] = useState<string>(models[0].id);
     const [modelSelectorOpen, setModelSelectorOpen] = useState<boolean>(false);
     const [messages, setMessages] = useState<Message[]>([]);
@@ -225,6 +229,12 @@ export default function Chatbot() {
         }
     };
 
+    const handleCitationClick = (citation: any) => {
+        if (citation?.citation?.filename && citation?.citation?.page) {
+            onCitationClick?.(citation.citation.filename, citation.citation.page);
+        }
+    };
+
     return (
         <div className="flex flex-col h-full bg-background rounded-lg border">
             {/* Header */}
@@ -284,8 +294,12 @@ export default function Chatbot() {
 
                                                         {/* Show only the most relevant page and chunk */}
                                                         {mostRelevantCitation && (
-                                                            <div className="mt-2 text-xs text-muted-foreground">
-                                                                <strong>Context:</strong> Page {mostRelevantCitation.citation?.page || 'N/A'}, Chunk {mostRelevantCitation.citation?.chunk_id?.split('_c')[1] || 'N/A'}
+                                                            <div
+                                                                className="mt-2 text-xs text-muted-foreground cursor-pointer hover:underline"
+                                                                onClick={() => handleCitationClick(mostRelevantCitation)}
+                                                            >
+                                                                <strong>Context:</strong> Page {mostRelevantCitation.citation?.page || 'N/A'},
+                                                                Chunk {mostRelevantCitation.citation?.chunk_id?.split('_c')[1] || 'N/A'}
                                                             </div>
                                                         )}
 

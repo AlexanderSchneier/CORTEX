@@ -1,14 +1,34 @@
 'use client';
 import 'react-pdf-highlighter/dist/style.css';
-
+import { useEffect, useRef } from 'react';
 import {PdfLoader, PdfHighlighter} from "react-pdf-highlighter";
 import type {IHighlight, ScaledPosition} from "react-pdf-highlighter";
 
 interface PdfViewerProps {
     pdfUrl: string | null;
+    targetPage?: number;
 }
 
-export default function PdfViewer({pdfUrl}: PdfViewerProps) {
+export default function PdfViewer({pdfUrl, targetPage = 1}: PdfViewerProps) {
+    const scrollToRef = useRef<((highlight: IHighlight) => void) | null>(null);
+
+    useEffect(() => {
+        if (scrollToRef.current && targetPage) {
+            // Small delay to ensure PDF is loaded
+            setTimeout(() => {
+                scrollToRef.current?.({
+                    position: {
+                        pageNumber: targetPage,
+                        boundingRect: { x1: 0, y1: 0, x2: 0, y2: 0, width: 0, height: 0 },
+                        rects: [],
+                    },
+                    content: { text: '' },
+                    id: `page-${targetPage}`,
+                } as IHighlight);
+            }, 100);
+        }
+    }, [pdfUrl, targetPage]);
+
     if (!pdfUrl) {
         return (
             <div className="flex-1 flex items-center justify-center bg-gray-50 border-x border-gray-200">
@@ -36,7 +56,7 @@ export default function PdfViewer({pdfUrl}: PdfViewerProps) {
     return (
         <div className="flex-1 flex flex-col p-4">
             <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between rounded-md">
-                <h3 className="text-sm font-semibold text-gray-700">PDF Viewer</h3>
+                <h3 className="text-sm font-semibold text-gray-700">PDF Viewer {targetPage > 1 && `- Page ${targetPage}`}</h3>
                 <a
                     href={pdfUrl}
                     target="_blank"
@@ -65,7 +85,9 @@ export default function PdfViewer({pdfUrl}: PdfViewerProps) {
                                         hideTipAndSelection: () => void,
                                         transformSelection: () => void
                                     ) => null}
-                                    scrollRef={(scrollTo) => {}}
+                                    scrollRef={(scrollTo) => {
+                                        scrollToRef.current = scrollTo;
+                                    }}
                                     onScrollChange={() => {}}
                                     highlightTransform={(
                                         highlight,

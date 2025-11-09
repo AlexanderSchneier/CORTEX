@@ -1,26 +1,31 @@
 'use client';
 
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import {SidebarLeftIcon} from "@/components/ui/icons/akar-icons-sidebar-left";
 import {PaperIcon} from "@/components/ui/icons/akar-icons-paper";
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
 
-interface PaperNavProps {
-    onSelectPdf: (pdfUrl: string) => void;
-    selectedPdf: string | null;
-    title?: string;
-    textColor?: string;
-}
-
 interface PdfItem {
     name: string;
     url: string;
+    paperId?: string;
+}
+
+interface PaperNavProps {
+    onSelectPdf: (pdfUrl: string) => void;
+    selectedPdf: string | null;
+    onPdfListChange?: (pdfList: PdfItem[]) => void;
+    title?: string;
+    textColor?: string;
+    selectedPaperId?: string | null;
 }
 
 export default function PaperNav({
                                      onSelectPdf,
                                      selectedPdf,
+                                     onPdfListChange,
+                                     selectedPaperId,   // ← ADD THIS
                                      title = 'PAPER DIRECTORY',
                                      textColor = 'text-white'
                                  }: PaperNavProps) {
@@ -28,6 +33,10 @@ export default function PaperNav({
     const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
     const [pdfList, setPdfList] = useState<PdfItem[]>([]);
     const [isUploading, setIsUploading] = useState(false);
+
+    useEffect(() => {
+        onPdfListChange?.(pdfList);
+    }, [pdfList, onPdfListChange]);
 
     const handlePdfClick = (pdf: PdfItem, index: number) => {
         setSelectedIndex(index);
@@ -70,6 +79,16 @@ export default function PaperNav({
 
                 const result = await response.json();
                 console.log('Upload successful:', result);
+
+                // Update the PDF item with the paper ID from backend
+                setPdfList(prev => {
+                    const updated = [...prev];
+                    updated[updated.length - 1] = {
+                        ...updated[updated.length - 1],
+                        paperId: result.paper_id
+                    };
+                    return updated;
+                });
             } catch (error) {
                 console.error('Error uploading file:', error);
                 alert('Failed to upload file to backend');
@@ -109,12 +128,17 @@ export default function PaperNav({
                             key={index}
                             onClick={() => handlePdfClick(pdf, index)}
                             className={`px-3 py-2 cursor-pointer list-none transition-colors ${
-                                selectedIndex === index
-                                    ? 'bg-[#edd5d7] border-l-4 border-[#8f0913]'
-                                    : 'bg-[#F9F6EE] hover:bg-stone-300'
+                                selectedPaperId
+                                    ? (pdf.paperId === selectedPaperId
+                                        ? 'bg-[#edd5d7] border-l-4 border-[#8f0913]'
+                                        : 'bg-[#F9F6EE] hover:bg-stone-300')
+                                    : (selectedIndex === index
+                                        ? 'bg-[#edd5d7] border-l-4 border-[#8f0913]'
+                                        : 'bg-[#F9F6EE] hover:bg-stone-300')
                             }`}
                         >
-                            <div className="flex items-center gap-2">
+
+                        <div className="flex items-center gap-2">
                                 <span className="text-black">
                                     <PaperIcon size={19}/>
                                 </span>
