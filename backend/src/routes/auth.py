@@ -2,10 +2,11 @@ import os
 import jwt
 import uuid
 from datetime import datetime, timedelta
-from fastapi import APIRouter, HTTPException, Depends, Form
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 from azure.cosmos import CosmosClient
+from pydantic import BaseModel
 
 # --- Config ---
 SECRET_KEY = os.getenv("JWT_SECRET", "dev-secret")
@@ -22,6 +23,11 @@ client = CosmosClient(os.getenv("COSMOS_URL"), credential=os.getenv("COSMOS_KEY"
 database = client.get_database_client(os.getenv("COSMOS_DB"))
 users_container = database.get_container_client("users")
 
+# --- Models ---
+class UserIn(BaseModel):
+    email: str
+    password: str
+
 # --- Helper: JWT creation ---
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
@@ -29,9 +35,13 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-# --- Routes ---
+# --- Signup Route ---
 @router.post("/signup")
-async def signup(email: str = Form(...), password: str = Form(...)):
+async def signup(user: UserIn):
+    email = user.email
+    password = user.password
+
+    # Check if user already exists
     query = f"SELECT * FROM c WHERE c.email = '{email}'"
     users = list(users_container.query_items(query, enable_cross_partition_query=True))
     if users:
@@ -49,9 +59,12 @@ async def signup(email: str = Form(...), password: str = Form(...)):
     token = create_access_token({"sub": email})
     return {"access_token": token, "token_type": "bearer"}
 
-
+# --- Login Route ---
 @router.post("/login")
-async def login(email: str = Form(...), password: str = Form(...)):
+async def login(user: UserIn):
+    email = user.email
+    password = user.password
+
     query = f"SELECT * FROM c WHERE c.email = '{email}'"
     users = list(users_container.query_items(query, enable_cross_partition_query=True))
     if not users or not pwd_context.verify(password, users[0]["hashed_password"]):
@@ -60,11 +73,10 @@ async def login(email: str = Form(...), password: str = Form(...)):
     token = create_access_token({"sub": email})
     return {"access_token": token, "token_type": "bearer"}
 
-
-# --- Dependency for protected routes ---
+# --- Auth Dependency for Protected Routes ---
 def get_current_user(token: str = Depends(oauth2_scheme)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload["sub"]  # user email
+        return payload["sub"]  # user's email
     except jwt.PyJWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
