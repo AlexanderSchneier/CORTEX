@@ -35,8 +35,3 @@ def save_doc(user_id: str, filename: str, text: str):
 def list_docs(user_id: str):
     query = f"SELECT * FROM c WHERE c.userId = '{user_id}'"
     return list(docs.query_items(query=query, enable_cross_partition_query=True))
-
-
-def list_docs_by_workspace(workspace_id: str):
-    query = f"SELECT * FROM c WHERE c.workspaceId = '{workspace_id}'"
-    return list(docs.query_items(query=query, enable_cross_partition_query=True))
