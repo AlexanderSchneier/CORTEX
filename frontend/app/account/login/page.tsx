@@ -63,7 +63,7 @@ export default function LoginPage() {
             }
 
             const data = await response.json();
-            localStorage.setItem('token', data.token);
+            localStorage.setItem('token', data.access_token);
 
             toast.success('Logged in successfully');
             router.push('/'); // Redirect to dashboard/home

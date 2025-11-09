@@ -86,8 +86,9 @@ export default function PaperNav({
                 const formData = new FormData();
                 formData.append('file', file);
 
-                // ⬇️ get token from localStorage
                 const token = localStorage.getItem('token');
+
+                console.log(token)
 
                 const response = await fetch(
                     'https://cortex-production-8481.up.railway.app/upload',
