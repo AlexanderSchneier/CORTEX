@@ -25,8 +25,8 @@ const robotoCondensed = Roboto_Condensed({
 });
 
 export const metadata: Metadata = {
-    title: "My App",
-    description: "Using Montserrat, Roboto, and Roboto Condensed fonts",
+    title: "Cortext",
+    description: "AI Research Assistant ",
 };
 
 export default function RootLayout({
