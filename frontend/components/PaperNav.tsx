@@ -80,15 +80,20 @@ export default function PaperNav({
 
                 console.log('✅ Loaded papers:', formatted); // ⬅️ ADD THIS
                 setPdfList(formatted);
-                onPdfListChange?.(formatted); // ⬅️ Make sure this is called
+
             } catch (err) {
                 console.error('Error loading papers:', err);
             }
         };
 
         fetchPapers();
-    }, [onPdfListChange]); //
+    }, []); //
 
+    useEffect(() => {
+        if (pdfList.length > 0) {
+            onPdfListChange?.(pdfList);
+        }
+    }, [pdfList, onPdfListChange]);
 
     const handlePdfClick = (pdf: PdfItem, index: number) => {
         setSelectedIndex(index);

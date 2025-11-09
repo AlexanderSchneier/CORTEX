@@ -21,6 +21,7 @@ export default function Home() {
     const [selectedPaperId, setSelectedPaperId] = useState<string | null>(null);
     const [selectedPage, setSelectedPage] = useState<number>(1); // Add this
 
+
     const handleCitationClick = (filename: string, page: number) => {
         // citation gives "paperid.pdf" — convert to paper_id
         const paperId = filename.replace(".pdf", "");
