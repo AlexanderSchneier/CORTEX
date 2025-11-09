@@ -51,7 +51,6 @@ export default function PaperNav({
 
                 const data = await res.json();
 
-                // ✅ Fetch blob URLs for all papers
                 const formatted = await Promise.all(
                     data.map(async (p: any) => {
                         try {
@@ -79,15 +78,16 @@ export default function PaperNav({
                     })
                 );
 
+                console.log('✅ Loaded papers:', formatted); // ⬅️ ADD THIS
                 setPdfList(formatted);
-                onPdfListChange?.(formatted);
+                onPdfListChange?.(formatted); // ⬅️ Make sure this is called
             } catch (err) {
                 console.error('Error loading papers:', err);
             }
         };
 
         fetchPapers();
-    }, []);
+    }, [onPdfListChange]); //
 
 
     const handlePdfClick = (pdf: PdfItem, index: number) => {
@@ -147,6 +147,7 @@ export default function PaperNav({
                         ...updated[updated.length - 1],
                         paperId: result.paper_id,
                     };
+                    onPdfListChange?.(updated); // ⬅️ ADD THIS
                     return updated;
                 });
             } catch (error) {
