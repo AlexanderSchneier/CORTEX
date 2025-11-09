@@ -265,20 +265,19 @@ export default function Chatbot() {
                                                         </p>
 
                                                         {/* Show chunk/citation metadata if present */}
-                                                        {Array.isArray(parsed?.chunks) && (
+                                                        {Array.isArray(parsed?.chunks) && parsed.chunks.length > 0 && (
                                                             <div className="mt-2 border-l-2 border-muted pl-3 text-xs text-muted-foreground space-y-1">
-                                                                <p className="font-semibold">🔎 Retrieved Chunks:</p>
-                                                                {parsed.chunks.map((chunk: RetrievedChunk, i: number) => (
-                                                                    <div key={i} className="bg-muted/30 rounded p-2">
-                                                                        <p><strong>Source:</strong> {chunk.source || 'unknown.pdf'}</p>
-                                                                        <p><strong>Lines:</strong> {chunk.line_range || 'N/A'}</p>
-                                                                        <p className="italic">
-                                                                            {chunk.preview ?? chunk.text?.slice(0, 120)}...
-                                                                        </p>
-                                                                    </div>
-                                                                ))}
+                                                                <p className="font-semibold">📄 Source:</p>
+                                                                <div className="bg-muted/30 rounded p-2">
+                                                                    <p><strong>File:</strong> {parsed.chunks[0].source || 'unknown.pdf'}</p>
+                                                                    <p><strong>Page:</strong> {parsed.chunks[0].line_range || 'N/A'}</p>
+                                                                    <p className="italic">
+                                                                        {parsed.chunks[0].preview ?? parsed.chunks[0].text?.slice(0, 120)}...
+                                                                    </p>
+                                                                </div>
                                                             </div>
                                                         )}
+
 
                                                         {Array.isArray(parsed?.citations) && (
                                                             <div className="mt-2 text-xs text-blue-600">

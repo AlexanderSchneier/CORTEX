@@ -383,36 +383,27 @@ def handle_question(
     
     # Step 2: Extract chunk IDs from answer or citations array
     chunk_ids = []
-    
-    # First, try to extract from citation tags in answer
     citation_tag_ids = extract_citation_ids(answer)
-    
+
     if citation_tag_ids:
-        chunk_ids = citation_tag_ids[:max_sources]
-        logger.info(f"Using chunk IDs from citation tags: {chunk_ids}")
+        # Explicitly cited chunk(s) — use only the first one
+        chunk_ids = [citation_tag_ids[0]]
+        logger.info(f"Using explicitly cited chunk: {chunk_ids[0]}")
     elif citations_data:
-        # Use top max_sources chunk_ids from citations array
-        chunk_ids = [
-            cit.get("chunk_id") 
-            for cit in citations_data[:max_sources] 
-            if cit.get("chunk_id") is not None
-        ]
-        logger.info(f"Using chunk IDs from citations array: {chunk_ids}")
+        # Choose the single highest scoring chunk deterministically
+        top_chunk = max(
+            citations_data,
+            key=lambda c: (c.get("score", 0.0), -c.get("chunk_id", 0))
+        )
+        chunk_ids = [top_chunk["chunk_id"]]
+        logger.info(f"Using top chunk: {chunk_ids[0]}")
     else:
-        # No citations found
-        logger.warning("No explicit citations found in response")
-        answer += " No explicit citations found; returning best candidate chunks (unverified)."
-        if citations_data:
-            chunk_ids = [
-                cit.get("chunk_id")
-                for cit in citations_data[:max_sources]
-                if cit.get("chunk_id") is not None
-            ]
-        else:
-            return {
-                "answer": "I don't know",
-                "citations": []
-            }
+        logger.warning("No explicit citations found; unable to select source chunk.")
+        return {
+            "answer": "I don't know",
+            "citations": []
+        }
+
     
     # Step 3: Verify each chunk
     verified_citations = []
