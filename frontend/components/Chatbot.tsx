@@ -294,8 +294,7 @@ export default function Chatbot({ onCitationClick }: ChatbotProps) {
                                                                 className="mt-2 text-xs text-muted-foreground cursor-pointer hover:underline"
                                                                 onClick={() => handleCitationClick(mostRelevantCitation)}
                                                             >
-                                                                <strong>Context:</strong> Page {mostRelevantCitation.citation?.page || 'N/A'},
-                                                                Chunk {mostRelevantCitation.citation?.chunk_id?.split('_c')[1] || 'N/A'}
+                                                                <strong>Citation:</strong> Page {mostRelevantCitation.citation?.page || 'N/A'}
                                                             </div>
                                                         )}
                                                     </div>
