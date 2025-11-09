@@ -50,12 +50,37 @@ export default function PaperNav({
                 }
 
                 const data = await res.json();
-                const formatted = data.map((p: any) => ({
-                    name: p.filename,
-                    url: '',              // no preview yet, only metadata
-                    paperId: p.id,
-                }));
+
+                // ✅ Fetch blob URLs for all papers
+                const formatted = await Promise.all(
+                    data.map(async (p: any) => {
+                        try {
+                            const pdfRes = await fetch(
+                                `https://cortex-production-8481.up.railway.app/upload/${p.id}`,
+                                { headers: { Authorization: `Bearer ${token}` } }
+                            );
+                            if (pdfRes.ok) {
+                                const blob = await pdfRes.blob();
+                                const blobUrl = URL.createObjectURL(blob);
+                                return {
+                                    name: p.filename,
+                                    url: blobUrl,
+                                    paperId: p.id,
+                                };
+                            }
+                        } catch (err) {
+                            console.error(`Failed to load PDF ${p.id}:`, err);
+                        }
+                        return {
+                            name: p.filename,
+                            url: '',
+                            paperId: p.id,
+                        };
+                    })
+                );
+
                 setPdfList(formatted);
+                onPdfListChange?.(formatted);
             } catch (err) {
                 console.error('Error loading papers:', err);
             }
@@ -65,29 +90,12 @@ export default function PaperNav({
     }, []);
 
 
-    const handlePdfClick = async (pdf: PdfItem, index: number) => {
+    const handlePdfClick = (pdf: PdfItem, index: number) => {
         setSelectedIndex(index);
-
-        // If this PDF came from backend (has paperId)
-        if (pdf.paperId) {
-            const token = localStorage.getItem('token');
-            const backendUrl = `https://cortex-production-8481.up.railway.app/upload/${pdf.paperId}`;
-
-            // Create an authenticated fetch to get the PDF blob
-            const res = await fetch(backendUrl, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (!res.ok) {
-                console.error('Failed to fetch PDF');
-                return;
-            }
-
-            const blob = await res.blob();
-            const blobUrl = URL.createObjectURL(blob);
-            onSelectPdf(blobUrl);  // pass URL to your PDF viewer
-        } else {
-            // locally uploaded preview
+        if (pdf.url) {
             onSelectPdf(pdf.url);
+        } else {
+            console.error('PDF URL not available');
         }
     };
 
