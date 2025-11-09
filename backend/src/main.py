@@ -3,9 +3,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
+
+
 # Import routers
 from .routes.upload import router as upload_router
 from .routes.papers import router as papers_router
+
+from .routes import auth
+
+app = FastAPI()
+app.include_router(auth.router)
 
 # Load environment variables
 load_dotenv()
