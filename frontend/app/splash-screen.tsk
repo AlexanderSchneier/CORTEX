@@ -1,0 +1,82 @@
+'use client';
+
+import {useState} from "react";
+import Chatbot from "@/components/Chatbot";
+import PdfViewer from "@/components/PdfViewer";
+import PaperNav from "@/components/PaperNav";
+import NavBar from "@/components/NavBar";
+
+'use client';
+
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import { motion } from "framer-motion";
+
+export default function SplashScreen({ children }: { children: React.ReactNode }) {
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 15000); // 2 second splash screen
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (showSplash) {
+    return (
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="flex items-center justify-center h-screen w-screen bg-black"
+      >
+        <div className="text-center">
+          <Image src="/logo.png" width={160} height={160} alt="Logo" className="mx-auto" />
+
+          <h1 className="text-white text-4xl mt-4 tracking-[0.3em] font-bold">
+            C O R T E X
+          </h1>
+        </div>
+      </motion.div>
+    );
+  }
+
+  return <>{children}</>;
+}
+
+
+
+export default function Home() {
+    const [selectedPdf, setSelectedPdf] = useState<string | null>(null);
+
+    return (
+        <div className="flex flex-col h-screen">
+            {/* NavBar at the top */}
+            <div>
+                <NavBar/>
+            </div>
+
+            {/* Main content area with horizontal flex */}
+            <div className="flex flex-1 overflow-hidden">
+                {/* Chatbot */}
+                <div className="w-1/3 p-4 overflow-auto">
+                    <Chatbot />
+                </div>
+
+                {/* PDF Viewer */}
+                <PdfViewer pdfUrl={selectedPdf} />
+
+                {/* PaperNav Sidebar */}
+                <div className="flex pt-4 h-screen">  {/* or p-4 if you want padding on all sides */}
+                    <PaperNav
+                        title="Paper Directory"
+                        textColor="text-black"
+                        onSelectPdf={setSelectedPdf}
+                        selectedPdf={selectedPdf}
+                    />
+                </div>
+            </div>
+        </div>
+    );
+}

@@ -13,22 +13,19 @@ import { MdAccountCircle } from "react-icons/md";
 
 export default function NavBar() {
     return (
-        <header className="w-full bg-white shadow-sm">
-            <div className="flex justify-between items-center px-6 py-4">
-                <div className="flex-1">
-                    <h1 className="text-xl font-semibold text-gray-700">CORTEX</h1>
+        <header className="w-full h-16 bg-white shadow-sm"> {/* fixed height */}
+            <div className="flex h-full justify-between items-center px-6"> {/* fill height; no py */}
+                {/* Left: logo */}
+                <div className="flex-1 flex items-center">
+                    <img src="/cortext.png" alt="Logo" className="h-20 w-auto" />
                 </div>
 
-                <div className="flex-1 flex justify-center">
-                    <img src="/logo.png" alt="Logo" className="w-15" />
-                </div>
 
+                {/* Right: account icon */}
                 <div className="flex-1 flex justify-end">
                     <MdAccountCircle className="w-8 h-8 text-gray-700 cursor-pointer hover:text-gray-900" />
                 </div>
             </div>
         </header>
-
-
-    );
+    )
 }
