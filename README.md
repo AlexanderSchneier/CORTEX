@@ -79,54 +79,6 @@ CORTEX/
 └── README.md
 ```
 
----
-
-## Setup Instructions
-
-### Prerequisites
-
-* Node.js (v18 or later)
-* Python 3.11+
-* MongoDB Atlas or local instance
-* `.env` files for both frontend and backend
-
-### Backend Setup
-
-```bash
-cd backend
-pip install -r requirements.txt
-uvicorn src.main:app --reload
-```
-
-### Frontend Setup
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
----
-
-## Environment Variables
-
-### Frontend `.env.local`
-
-```
-NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
-NEXT_PUBLIC_OPENAI_API_KEY=your_key_here
-```
-
-### Backend `.env`
-
-```
-MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret
-OPENAI_API_KEY=your_openai_key
-```
-
----
-
 ## Future Improvements
 
 * Fine-tuned document summarization and section retrieval
